@@ -1,0 +1,86 @@
+<html>
+<head>
+<title>The NES Controller Handler</title>
+<meta charset="UTF-8">
+</head>
+<body bgcolor="#ffffff">
+<h1>The NES Controller Handler</h1>
+<p>
+The Controller Handler interprets signals coming from the Nintendo
+Entertainment System Controller and outputs 8 positive-true lines—one
+for each button of the controller—which go the the MCU.
+</p>
+<p>
+Player input is via the controller, the same interface one would use to
+play the NES Dr. Mario.  There are quite a few pages on the Internet
+describing the specifications of the NES (most are about emulating the
+NES hardware), and a few which talk about the protocol that the NES
+uses to interface with the controller.  However, the most useful
+information, oddly enough, was found in the x86 Linux source tree
+under “joysticks.”  Apparently, some people like to retrofit NES and
+SNES controllers to the joystick port of Linux machines.
+</p>
+<p>
+The NES controller's cord ends with a male “D-cannon” connector, as
+one source dubbed it.  After acquiring an unwanted NES system, I took
+it apart to obtain a female D-cannon and unsoldered the piece connecting
+the wires from the connector to the main NES circuit board.
+</p>
+<p>
+<table align="center">
+<caption align="bottom">NES Controller Pins</caption>
+<td><pre>
+          +----> Power  (white)
+          |
+5 +---------+  7
+  | x  x  o   \
+  | o  o  o  o |
+4 +------------+ 1
+    |  |  |  |
+    |  |  |  +-> Ground (brown)
+    |  |  +----> Pulse  (red)
+    |  +-------> Latch  (orange)
+    +----------> Data   (yellow)
+</pre></td>
+</table>
+</p>
+<p>
+Of the seven wires, two of them literally go nowhere; they are not
+connected to the circuit board or anything else.  Of the remaining
+five, one goes to +5V and the other goes to ground, thus leaving three
+interesting wires.  Since 2³ = 8, one might assume that the eight
+controller buttons translate to these three output lines; this is not
+the case, especially since the NES games can register when more than
+one button is being simultaneously held down.
+</p>
+<p>
+<table align="center">
+<caption align="bottom">NES Controller Data</caption>
+<td width="100%"><a href="nes-data.gif"><img src="nes-data.gif" width="800" border=0></a></td>
+</table>
+</p>
+<p>
+The NES uses a serialized polling mechanism to query the state of the
+buttons.  Every 60 Hz, the NES sends a 12us high signal to the Latch pin,
+telling the controller to latch the state of of all buttons internally.
+Six microseconds later, the NES sends 8 high pulses on the Pulse pin,
+12us per full cycle, 50% duty cycle.
+</p>
+<p>
+After the initial wide pulse on the Latch pin, Data goes high until
+the eighth pulse passes, at which point it drops low again.  For each
+pulse on the Pulse pin, Data will assert ground if the button
+corresponding to that pulse was pressed.  (The button states on Data
+are thus negative true.)  The button order is always the same: A, B,
+Select, Start, Up, Down, Left, Right.
+</p>
+<p>
+By mimicing the NES's polling mechanism using clocks generated from
+CPLD&nbsp;2, I use a <a href="nes-fsm3.vhd">17-state FSM</a> implemented on CPLD&nbsp;3, using the clocks
+and the Data pin as input, that drove 8 positive-true lines—one
+for each button.  (These, when connected to the LEDs, were quite
+impressive.)
+</p>
+<footer>Tresi Arvizo — Excerpt from 6.111 lab final report.</footer>
+</body>
+</html>
